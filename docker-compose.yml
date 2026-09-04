@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./devtrack bakend
+    container_name: devtrack-backend
+    ports:
+      - "5000:5000"
+    env_file: ./devtrack bakend/.env
+    volumes:
+      - ./devtrack bakend:/app        # Aapke laptop ka backend code container se sync ho jayega
+      - /app/node_modules              # node_modules ko protect karne ke liye
+    restart: always
+
+  frontend:
+    build: .
+    container_name: devtrack-frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app                        # Aapke laptop ka frontend code container se sync ho jayega
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: always
