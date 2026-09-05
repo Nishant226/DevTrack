@@ -7,9 +7,22 @@ services:
     ports:
       - "5000:5000"
     env_file: ./devtrack bakend/.env
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/devtrack
     volumes:
-      - ./devtrack bakend:/app        # Aapke laptop ka backend code container se sync ho jayega
-      - /app/node_modules              # node_modules ko protect karne ke liye
+      - ./devtrack bakend:/app
+      - /app/node_modules
+    depends_on:
+      - mongo
+    restart: always
+
+  mongo:
+    image: mongo:latest
+    container_name: devtrack-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
     restart: always
 
   frontend:
@@ -18,8 +31,11 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - .:/app                        # Aapke laptop ka frontend code container se sync ho jayega
+      - .:/app
       - /app/node_modules
     depends_on:
       - backend
     restart: always
+
+volumes:
+  mongo_data:
