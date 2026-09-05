@@ -23,9 +23,24 @@ if (process.env.NODE_ENV !== 'test') {
 const app = express();
 const server = http.createServer(app);
 
-// --- 3. CORS sabse pehle lagana zaroori hai taaki preflight requests block na ho ---
+// Allowed Origins (Localhost aur AWS EC2 IP dono ke liye)
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://16.171.172.227:3000',
+  process.env.CLIENT_URL
+].filter(Boolean);
+
+// --- 3. CORS Configuration ---
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, postman, or curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -34,7 +49,7 @@ app.use(cors({
 // 4. Socket.io Setup
 const io = new Server(server, {
   cors: {
-    origin: 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
     credentials: true
   }
