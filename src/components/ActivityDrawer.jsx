@@ -189,7 +189,7 @@ const ActivityDrawer = ({ isOpen, onClose, taskId }) => {
                     <span className="text-blue-400">{log.user?.name || 'Unknown User'}</span> {log.action}
                   </p>
                   <span className="text-[11px] text-gray-400 block">
-                    {newDate(log.createdAt).toLocaleString()}
+                    {new Date(log.createdAt).toLocaleString()}
                   </span>
                 </div>
               ))
