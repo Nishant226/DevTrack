@@ -23,10 +23,10 @@ exports.addComment = async (req, res, next) => {
     // Activity log mein bhi record kar dete hain
     await logActivity(taskId, req.user._id, `Added a comment`);
 
-    // Socket.io real-time update ke liye (optional broadcast)
+    // Socket.io real-time update ke liye (Event name updated to 'commentAdded')
     const io = req.app.get('socketio');
     if (io) {
-      io.emit('newComment', populatedComment);
+      io.emit('commentAdded', { taskId, comment: populatedComment });
     }
 
     res.status(201).json({ success: true, data: populatedComment });
