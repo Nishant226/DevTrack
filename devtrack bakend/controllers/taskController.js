@@ -1,12 +1,13 @@
 const Task = require('../models/Task');
 const User = require('../models/User');
+const Comment = require('../models/Comment');
 const { logActivity } = require('./activityController');
 const sendEmail = require('../utils/sendEmail');
 const { GoogleGenAI } = require('@google/genai');
 const cloudinary = require('cloudinary').v2;
 const mongoose = require('mongoose');
 
-// 1. Get Tasks (Supports role-based filtering: Developer/Tester see only assigned tasks, Admin/PM see all)
+// 1. Get Tasks (Supports role-based filtering: Developer/Tester see only assigned tasks, Admin/PM see all + Comment Count)
 exports.getTasks = async (req, res, next) => {
   try {
     const { status, priority, search, sortBy, page = 1, limit = 100, project } = req.query;
@@ -50,18 +51,30 @@ exports.getTasks = async (req, res, next) => {
       .populate('createdBy', 'name email role')
       .sort(sortOptions)
       .skip(startIndex)
-      .limit(limitNum);
+      .limit(limitNum)
+      .lean(); // .lean() use kiya hai taaki plain JavaScript objects mil jayein aur commentCount safely attach ho sake
+
+    // Attach real-time comment count to each task object safely
+    const tasksWithCommentCount = await Promise.all(
+      tasks.map(async (task) => {
+        const count = await Comment.countDocuments({ task: task._id });
+        return {
+          ...task,
+          commentCount: count
+        };
+      })
+    );
 
     res.json({
       success: true,
-      count: tasks.length,
+      count: tasksWithCommentCount.length,
       pagination: {
         totalTasks: total,
         currentPage: pageNum,
         totalPages: Math.ceil(total / limitNum),
         limit: limitNum
       },
-      data: tasks
+      data: tasksWithCommentCount
     });
   } catch (error) {
     next(error);
@@ -89,7 +102,7 @@ exports.getTaskById = async (req, res, next) => {
 // 3. Create Task
 exports.createTask = async (req, res, next) => {
   try {
-    const { title, description, status, priority, type, project, assignedTo, assignee, dueDate,startDate } = req.body;
+    const { title, description, status, priority, type, project, assignedTo, assignee, dueDate, startDate } = req.body;
 
     let finalAssignedTo = assignedTo || assignee;
 
