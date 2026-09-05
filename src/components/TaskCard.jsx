@@ -36,7 +36,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
   // Handle comment count safely based on how backend sends it (array or number)
   const commentCount = Array.isArray(task.comments) 
     ? task.comments.length 
-    : (typeof task.commentsCount === 'number' ? task.commentsCount : 0);
+    : (typeof task.commentCount === 'number' ? task.commentsCount : 0);
 
   const handleDownload = async (e, url, fileName) => {
     e.stopPropagation();
