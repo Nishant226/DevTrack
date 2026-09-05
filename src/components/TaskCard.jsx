@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calendar, Trash2, History, Paperclip, Download, X, User } from 'lucide-react';
+import { Calendar, Trash2, History, Paperclip, Download, X, User, MessageSquare } from 'lucide-react';
 import ActivityDrawer from './ActivityDrawer';
 import API from '../services/api';
 
@@ -32,6 +32,11 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
 
   const taskId = task._id || task.id;
   const attachments = task.attachments || [];
+  
+  // Handle comment count safely based on how backend sends it (array or number)
+  const commentCount = Array.isArray(task.comments) 
+    ? task.comments.length 
+    : (typeof task.commentsCount === 'number' ? task.commentsCount : 0);
 
   const handleDownload = async (e, url, fileName) => {
     e.stopPropagation();
@@ -131,7 +136,6 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
           <span className="text-[11px] text-gray-500">Assignee:</span>
           {task.assignedTo ? (
             <div className="relative">
-              {/* Sirf Gol Icon */}
               <div 
                 onClick={(e) => {
                   e.stopPropagation();
@@ -143,7 +147,6 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
                 {task.assignedTo.name ? task.assignedTo.name.charAt(0) : 'U'}
               </div>
 
-              {/* Popover Card (Name, Email & Role) */}
               {showUserPopover && (
                 <div 
                   onClick={(e) => e.stopPropagation()}
@@ -219,7 +222,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
           </div>
         )}
 
-        {/* Card Footer: Start Date & Due Date Timeline */}
+        {/* Card Footer: Timeline, Comments & Attachments Count */}
         <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1 border-t border-gray-800">
           <div className="flex items-center gap-2">
             <div className="flex items-center">
@@ -233,12 +236,24 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
             </div>
           </div>
 
-          {attachments.length > 0 && (
-            <div className="flex items-center text-gray-400 font-medium">
-              <Paperclip className="w-3 h-3 mr-1" />
-              <span>{attachments.length}</span>
-            </div>
-          )}
+          {/* Right side indicators (Comments & Attachments count) */}
+          <div className="flex items-center gap-3">
+            {/* Comment Count Badge */}
+            {commentCount > 0 && (
+              <div className="flex items-center text-blue-400 font-medium" title={`${commentCount} Comments`}>
+                <MessageSquare className="w-3 h-3 mr-1" />
+                <span>{commentCount}</span>
+              </div>
+            )}
+
+            {/* Attachment Count Badge */}
+            {attachments.length > 0 && (
+              <div className="flex items-center text-gray-400 font-medium" title={`${attachments.length} Attachments`}>
+                <Paperclip className="w-3 h-3 mr-1" />
+                <span>{attachments.length}</span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
