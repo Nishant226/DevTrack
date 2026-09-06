@@ -22,15 +22,14 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
   const [commentCount, setCommentCount] = useState(getInitialCount());
   const [hasNewComment, setHasNewComment] = useState(false);
 
-  // Sync comment count when task props change, but avoid overwriting a valid count with zero/missing props
+  // Sync comment count when task props change, using Math.max so it never drops 
+  // even if the parent task object is lagging by 1 or 2 comments from socket updates
   useEffect(() => {
     const updatedCount = Array.isArray(task.comments) 
       ? task.comments.length 
       : (Number(task.commentCount) || Number(task.commentsCount) || 0);
     
-    if (updatedCount > 0) {
-      setCommentCount(updatedCount);
-    }
+    setCommentCount((prev) => Math.max(prev, updatedCount));
   }, [task]);
 
   // Real-time socket listener for comment badge updates on TaskCard
