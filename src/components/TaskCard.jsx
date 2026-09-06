@@ -13,12 +13,25 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
   const attachments = task.attachments || [];
   
   // Local states for real-time comment count and unread notification badge
-  const initialCommentCount = Array.isArray(task.comments) 
-    ? task.comments.length 
-    : (Number(task.commentCount) || Number(task.commentsCount) || 0);
+  const getInitialCount = () => {
+    return Array.isArray(task.comments) 
+      ? task.comments.length 
+      : (Number(task.commentCount) || Number(task.commentsCount) || 0);
+  };
 
-  const [commentCount, setCommentCount] = useState(initialCommentCount);
+  const [commentCount, setCommentCount] = useState(getInitialCount());
   const [hasNewComment, setHasNewComment] = useState(false);
+
+  // Sync comment count when task props change (e.g., after drag-and-drop column move)
+  useEffect(() => {
+    const updatedCount = Array.isArray(task.comments) 
+      ? task.comments.length 
+      : (Number(task.commentCount) || Number(task.commentsCount) || 0);
+    
+    if (updatedCount > 0) {
+      setCommentCount(updatedCount);
+    }
+  }, [task]);
 
   // Real-time socket listener for comment badge updates on TaskCard
   useEffect(() => {
