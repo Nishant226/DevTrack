@@ -6,7 +6,7 @@ import API from '../services/api';
 function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const [showUserPopover, setShowUserPopover] = useState(false); // Popover state
+  const [showUserPopover, setShowUserPopover] = useState(false);
 
   const getRoleFromStorage = () => {
     try {
@@ -33,10 +33,10 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
   const taskId = task._id || task.id;
   const attachments = task.attachments || [];
   
-  // Handle comment count safely based on how backend sends it (array or number)
+  // Robust comment count check to safely handle backend fields
   const commentCount = Array.isArray(task.comments) 
     ? task.comments.length 
-    : (typeof task.commentCount === 'number' ? task.commentsCount : 0);
+    : (Number(task.commentCount) || Number(task.commentsCount) || 0);
 
   const handleDownload = async (e, url, fileName) => {
     e.stopPropagation();
