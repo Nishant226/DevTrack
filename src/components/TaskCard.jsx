@@ -266,7 +266,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
           </div>
         )}
 
-        {/* Card Footer: Timeline, Comments & Attachments Count */}
+        {/* Card Footer: Timeline & Attachments/Unread Count */}
         <div className="flex items-center justify-between text-[11px] text-gray-400 pt-1 border-t border-gray-800">
           <div className="flex items-center gap-2">
             <div className="flex items-center">
@@ -280,18 +280,15 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
             </div>
           </div>
 
-          {/* Right side indicators (Comments & Attachments count) */}
+          {/* Right side indicators (Only Unread Comments Badge & Attachments count) */}
           <div className="flex items-center gap-3">
-            {/* Comment Count Badge (Shows total, plus highlights unread count if any) */}
-            <div className={`flex items-center font-medium ${unreadNewCount > 0 ? 'text-red-400' : 'text-blue-400'}`} title={`${commentCount} Total Comments (${unreadNewCount} unread)`}>
-              <MessageSquare className="w-3 h-3 mr-1" />
-              <span>{commentCount}</span>
-              {unreadNewCount > 0 && (
-                <span className="ml-1 text-[10px] bg-red-500/20 text-red-300 px-1 rounded">+{unreadNewCount}</span>
-              )}
-            </div>
+            {unreadNewCount > 0 && (
+              <div className="flex items-center font-medium text-red-400 bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20" title={`${unreadNewCount} unread comments`}>
+                <MessageSquare className="w-3 h-3 mr-1" />
+                <span>+{unreadNewCount}</span>
+              </div>
+            )}
 
-            {/* Attachment Count Badge */}
             {attachments.length > 0 && (
               <div className="flex items-center text-gray-400 font-medium" title={`${attachments.length} Attachments`}>
                 <Paperclip className="w-3 h-3 mr-1" />
