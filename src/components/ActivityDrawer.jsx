@@ -3,7 +3,7 @@ import API from '../services/api';
 import { socket } from '../services/socket';
 import { X, History, MessageSquare, Send, FileText, Calendar, AlertCircle } from 'lucide-react';
 
-const ActivityDrawer = ({ isOpen, onClose, taskId }) => {
+const ActivityDrawer = ({ isOpen, onClose, taskId, onCommentAdded }) => {
   const [activeTab, setActiveTab] = useState('activity'); // 'activity' or 'comments'
   const [taskDetails, setTaskDetails] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -27,7 +27,11 @@ const ActivityDrawer = ({ isOpen, onClose, taskId }) => {
           const commentObj = data.comment || data;
           const exists = prev.some((c) => c._id === commentObj._id);
           if (exists) return prev;
-          return [...prev, commentObj];
+          const updated = [...prev, commentObj];
+          
+          // Notify parent about new comment count
+          if (onCommentAdded) onCommentAdded(updated.length);
+          return updated;
         });
       }
     };
@@ -65,7 +69,9 @@ const ActivityDrawer = ({ isOpen, onClose, taskId }) => {
   const fetchComments = async () => {
     try {
       const { data } = await API.get(`/tasks/${taskId}/comments`);
-      setComments(Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : []);
+      const fetchedComments = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
+      setComments(fetchedComments);
+      if (onCommentAdded) onCommentAdded(fetchedComments.length);
     } catch (err) {
       console.error('Failed to fetch comments:', err);
     }
@@ -83,7 +89,11 @@ const ActivityDrawer = ({ isOpen, onClose, taskId }) => {
       setComments((prev) => {
         const exists = prev.some((c) => c._id === added._id);
         if (exists) return prev;
-        return [...prev, added];
+        const updated = [...prev, added];
+        
+        // Notify parent instantly on successful add
+        if (onCommentAdded) onCommentAdded(updated.length);
+        return updated;
       });
       
       setNewComment('');
@@ -199,12 +209,12 @@ const ActivityDrawer = ({ isOpen, onClose, taskId }) => {
               {comments.length === 0 ? (
                 <p className="text-center text-gray-400 py-6">No comments yet. Start the conversation!</p>
               ) : (
-                comments.map((comment) => (
-                  <div key={comment._id} className="bg-gray-800/60 border border-gray-700/60 p-3 rounded-lg text-sm space-y-1">
+                comments.some((comment) => comment) && comments.map((comment) => (
+                  <div key={comment._id || Math.random()} className="bg-gray-800/60 border border-gray-700/60 p-3 rounded-lg text-sm space-y-1">
                     <div className="flex justify-between items-center">
                       <span className="text-emerald-400 font-semibold text-xs">{comment.user?.name || 'User'}</span>
                       <span className="text-[10px] text-gray-400">
-                        {new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {comment.createdAt ? new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                     </div>
                     <p className="text-gray-200 text-xs mt-1 leading-relaxed">{comment.text}</p>
@@ -240,4 +250,5 @@ const ActivityDrawer = ({ isOpen, onClose, taskId }) => {
   );
 };
 
+exports = ActivityDrawer;
 export default ActivityDrawer;

@@ -1,12 +1,43 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, Trash2, History, Paperclip, Download, X, User, MessageSquare } from 'lucide-react';
 import ActivityDrawer from './ActivityDrawer';
 import API from '../services/api';
+import { socket } from '../services/socket'; // <-- Imported socket for real-time card updates
 
 function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [showUserPopover, setShowUserPopover] = useState(false);
+
+  const taskId = task._id || task.id;
+  const attachments = task.attachments || [];
+  
+  // Local states for real-time comment count and unread notification badge
+  const initialCommentCount = Array.isArray(task.comments) 
+    ? task.comments.length 
+    : (Number(task.commentCount) || Number(task.commentsCount) || 0);
+
+  const [commentCount, setCommentCount] = useState(initialCommentCount);
+  const [hasNewComment, setHasNewComment] = useState(false);
+
+  // Real-time socket listener for comment badge updates on TaskCard
+  useEffect(() => {
+    const handleCommentAdded = (data) => {
+      const targetTaskId = data.taskId || data.comment?.task;
+      if (targetTaskId === taskId) {
+        setCommentCount((prev) => prev + 1);
+        if (!isDrawerOpen) {
+          setHasNewComment(true); // Show red notification badge if drawer is closed
+        }
+      }
+    };
+
+    socket.on('commentAdded', handleCommentAdded);
+
+    return () => {
+      socket.off('commentAdded', handleCommentAdded);
+    };
+  }, [taskId, isDrawerOpen]);
 
   const getRoleFromStorage = () => {
     try {
@@ -29,14 +60,6 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
     Medium: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
     Low: 'bg-green-500/10 text-green-400 border-green-500/30',
   };
-
-  const taskId = task._id || task.id;
-  const attachments = task.attachments || [];
-  
-  // Robust comment count check to safely handle backend fields
-  const commentCount = Array.isArray(task.comments) 
-    ? task.comments.length 
-    : (Number(task.commentCount) || Number(task.commentsCount) || 0);
 
   const handleDownload = async (e, url, fileName) => {
     e.stopPropagation();
@@ -87,12 +110,21 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
       <div 
         draggable
         onDragStart={(e) => onDragStart(e, taskId)}
-        onClick={() => setIsDrawerOpen(true)}
+        onClick={() => {
+          setIsDrawerOpen(true);
+          setHasNewComment(false); // Clear red badge when user opens drawer
+        }}
         className="bg-gray-900 border border-gray-700/80 rounded-lg p-4 mb-3 hover:border-gray-500 transition-all cursor-pointer active:cursor-grabbing shadow-sm group relative"
       >
         {/* Title, Priority & Actions */}
         <div className="flex items-start justify-between gap-2 mb-2">
-          <h3 className="text-sm font-semibold text-gray-100">{task.title}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-gray-100">{task.title}</h3>
+            {/* Red Notification Badge for Unread Comments */}
+            {hasNewComment && (
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" title="New comment received!" />
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <span className={`text-[10px] font-medium px-2 py-0.5 rounded border ${priorityColors[task.priority] || priorityColors.Low}`}>
               {task.priority}
@@ -103,6 +135,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
               onClick={(e) => {
                 e.stopPropagation();
                 setIsDrawerOpen(true);
+                setHasNewComment(false);
               }}
               className="text-gray-400 hover:text-blue-400 transition-colors"
               title="View Activity History"
@@ -239,12 +272,10 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
           {/* Right side indicators (Comments & Attachments count) */}
           <div className="flex items-center gap-3">
             {/* Comment Count Badge */}
-            {commentCount > 0 && (
-              <div className="flex items-center text-blue-400 font-medium" title={`${commentCount} Comments`}>
-                <MessageSquare className="w-3 h-3 mr-1" />
-                <span>{commentCount}</span>
-              </div>
-            )}
+            <div className={`flex items-center font-medium ${hasNewComment ? 'text-red-400' : 'text-blue-400'}`} title={`${commentCount} Comments`}>
+              <MessageSquare className="w-3 h-3 mr-1" />
+              <span>{commentCount}</span>
+            </div>
 
             {/* Attachment Count Badge */}
             {attachments.length > 0 && (
@@ -260,7 +291,10 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
       <ActivityDrawer 
         isOpen={isDrawerOpen} 
         onClose={() => setIsDrawerOpen(false)} 
-        taskId={taskId} 
+        taskId={taskId}
+        onCommentAdded={(newTotalCount) => {
+          setCommentCount(newTotalCount);
+        }}
       />
     </>
   );
