@@ -12,7 +12,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
   const taskId = task._id || task.id;
   const attachments = task.attachments || [];
   
-  // Robust initial count getter to prevent any mismatch
+  // Robust initial count getter for total comments
   const getInitialCount = () => {
     return Array.isArray(task.comments) 
       ? task.comments.length 
@@ -20,14 +20,13 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
   };
 
   const [commentCount, setCommentCount] = useState(getInitialCount());
-  const [hasNewComment, setHasNewComment] = useState(false);
+  const [unreadNewCount, setUnreadNewCount] = useState(0); // Sirf naye unread comments ka count track karne ke liye
 
-  // Sync comment count when task props change, using Math.max so it never drops 
-  // even if the parent task object is lagging by 1 or 2 comments from socket updates
+  // Sync comment count when task props change safely using Math.max
   useEffect(() => {
     const updatedCount = Array.isArray(task.comments) 
       ? task.comments.length 
-      : (Number(task.commentCount) || Number(task.commentsCount) || 0);
+      : (Number(task.commentCount) || Number(task.commentCount) || 0);
     
     setCommentCount((prev) => Math.max(prev, updatedCount));
   }, [task]);
@@ -39,7 +38,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
       if (targetTaskId === taskId) {
         setCommentCount((prev) => prev + 1);
         if (!isDrawerOpen) {
-          setHasNewComment(true); // Show red notification badge if drawer is closed
+          setUnreadNewCount((prev) => prev + 1); // Agar drawer band hai toh unread count badhao
         }
       }
     };
@@ -124,7 +123,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
         onDragStart={(e) => onDragStart(e, taskId)}
         onClick={() => {
           setIsDrawerOpen(true);
-          setHasNewComment(false); // Clear red badge when user opens drawer
+          setUnreadNewCount(0); // Drawer khulte hi unread badge reset ho jayega!
         }}
         className="bg-gray-900 border border-gray-700/80 rounded-lg p-4 mb-3 hover:border-gray-500 transition-all cursor-pointer active:cursor-grabbing shadow-sm group relative"
       >
@@ -132,9 +131,9 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2">
             <h3 className="text-sm font-semibold text-gray-100">{task.title}</h3>
-            {/* Red Notification Badge for Unread Comments */}
-            {hasNewComment && (
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" title="New comment received!" />
+            {/* Red Pulse Notification for Unread Comments */}
+            {unreadNewCount > 0 && (
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" title={`${unreadNewCount} new unread comments!`} />
             )}
           </div>
           <div className="flex items-center gap-2">
@@ -147,7 +146,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
               onClick={(e) => {
                 e.stopPropagation();
                 setIsDrawerOpen(true);
-                setHasNewComment(false);
+                setUnreadNewCount(0);
               }}
               className="text-gray-400 hover:text-blue-400 transition-colors"
               title="View Activity History"
@@ -283,10 +282,13 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
 
           {/* Right side indicators (Comments & Attachments count) */}
           <div className="flex items-center gap-3">
-            {/* Comment Count Badge */}
-            <div className={`flex items-center font-medium ${hasNewComment ? 'text-red-400' : 'text-blue-400'}`} title={`${commentCount} Comments`}>
+            {/* Comment Count Badge (Shows total, plus highlights unread count if any) */}
+            <div className={`flex items-center font-medium ${unreadNewCount > 0 ? 'text-red-400' : 'text-blue-400'}`} title={`${commentCount} Total Comments (${unreadNewCount} unread)`}>
               <MessageSquare className="w-3 h-3 mr-1" />
               <span>{commentCount}</span>
+              {unreadNewCount > 0 && (
+                <span className="ml-1 text-[10px] bg-red-500/20 text-red-300 px-1 rounded">+{unreadNewCount}</span>
+              )}
             </div>
 
             {/* Attachment Count Badge */}
