@@ -250,5 +250,4 @@ const ActivityDrawer = ({ isOpen, onClose, taskId, onCommentAdded }) => {
   );
 };
 
-exports = ActivityDrawer;
 export default ActivityDrawer;
