@@ -12,7 +12,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
   const taskId = task._id || task.id;
   const attachments = task.attachments || [];
   
-  // Local states for real-time comment count and unread notification badge
+  // Robust initial count getter to prevent any mismatch
   const getInitialCount = () => {
     return Array.isArray(task.comments) 
       ? task.comments.length 
@@ -22,23 +22,7 @@ function TaskCard({ task, onDeleteTask, onDragStart, onTaskUpdated, userRole }) 
   const [commentCount, setCommentCount] = useState(getInitialCount());
   const [hasNewComment, setHasNewComment] = useState(false);
 
-  // Fetch exact comment count on load & sync to prevent any mismatch
-  useEffect(() => {
-    const fetchExactCommentCount = async () => {
-      try {
-        const { data } = await API.get(`/tasks/${taskId}/comments`);
-        const list = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-        if (list.length > 0) {
-          setCommentCount(list.length);
-        }
-      } catch (err) {
-        console.error('Failed to sync initial comment count:', err);
-      }
-    };
-    fetchExactCommentCount();
-  }, [taskId]);
-
-  // Sync comment count when task props change (e.g., after drag-and-drop column move)
+  // Sync comment count when task props change, but avoid overwriting a valid count with zero/missing props
   useEffect(() => {
     const updatedCount = Array.isArray(task.comments) 
       ? task.comments.length 
